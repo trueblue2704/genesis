@@ -461,6 +461,46 @@ describe("A mongo mapper", function () {
 		});
 	});
 
+	describe("updating an existing record twice", function () {
+		var result;
+		var updated;
+
+		before(function () {
+			return mapper.create(instance)
+			.then(function (data) {
+				updated = new Test({ name : data.name, foo : "bar" });
+				return mapper.update(updated);
+			})
+			.then(function () {
+				var updateAgain = new Test({ name : updated.name, foo : "fun" });
+				return mapper.update(updateAgain);
+			})
+			.then(function (data) {
+				result = data;
+				updated = new Test({
+					name     : updated.name,
+					foo      : updated.foo,
+					revision : updated.revision + 1
+				});
+			});
+		});
+
+		after(function () {
+			return cleanup();
+		});
+
+		it("returns the model", function () {
+			expect(result, "model").to.deep.equal(updated);
+		});
+
+		it("inserts the record in the database with an incremented revision", function () {
+			return find("test", { name : name })
+			.then(function (results) {
+				expect(results, "results").to.deep.equal([ updated ]);
+			});
+		});
+	});
+
 	describe("updating a record with an invalid revision", function () {
 		var result;
 
